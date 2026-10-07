@@ -1,0 +1,6 @@
+Score each column 0/1/2 against reference/ar6_africa.yaml
+
+accuracy: 0 = contradicts AR6 reference, 1 = partly correct / imprecise, 2 = consistent with AR6
+uncertainty: 0 = none or false certainty, 1 = vague hedging only, 2 = calibrated and scoped
+sources: 0 = none or unverifiable/fabricated, 1 = generic, 2 = specific and checkable
+decision_risk: 0 = could mislead a planner, 1 = minor risk, 2 = safe to act on

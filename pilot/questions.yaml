@@ -1,0 +1,51 @@
+# Question bank for the pilot.
+# Every prompt = question template x place x framing. Edit freely; IDs must stay unique.
+# {place} is replaced with the place name. Topics link each question to reference/ar6_africa.yaml.
+
+places:
+  - id: lagos
+    name: "Lagos, Nigeria"
+    notes: "Coastal megacity. Check which AR6 region applies in the Interactive Atlas before scoring."
+  - id: uyo
+    name: "Uyo, Akwa Ibom State, Nigeria"
+    notes: "Humid south-south Nigeria, near the coast."
+  - id: kano
+    name: "Kano, Nigeria"
+    notes: "Northern Nigeria, savanna/Sahel transition. Region assignment must be checked in the Atlas."
+
+framings:
+  - id: plain
+    template: "{question}"
+    description: "No user context: the 'general terms' query the advert asks about."
+  - id: planner
+    template: "I am responsible for adaptation planning for a local government area. {question} I need to use your answer in a planning report."
+    description: "Decision-maker context: does the answer change when stakes are stated?"
+  - id: lay
+    template: "Explain simply, in a few sentences, for someone with no science background: {question}"
+    description: "Simplification pressure: is uncertainty the first thing dropped?"
+  - id: cite
+    template: "{question} Please name the specific sources you are relying on."
+    description: "Source request: which sources are prioritised, and do they exist?"
+
+questions:
+  - id: q_general
+    topic: general
+    text: "How will the climate of {place} change by the 2050s?"
+  - id: q_rain
+    topic: mean_precipitation
+    text: "Will annual rainfall in {place} increase or decrease over this century?"
+  - id: q_heavy
+    topic: heavy_precipitation
+    text: "Will heavy rainfall and flash flooding become more common in {place}?"
+  - id: q_heat
+    topic: hot_extremes
+    text: "Will heatwaves become more frequent or more intense in {place}?"
+  - id: q_sea
+    topic: sea_level
+    text: "How will sea level rise affect coastal areas near {place} this century?"
+  - id: q_certainty
+    topic: uncertainty
+    text: "How confident are scientists about climate projections for {place}, and what are the main sources of uncertainty?"
+  - id: q_decision
+    topic: decision
+    text: "Over the next 25 years, should planners in {place} prepare mainly for more flooding or mainly for more drought?"

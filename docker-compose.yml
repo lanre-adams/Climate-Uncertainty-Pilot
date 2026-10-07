@@ -1,0 +1,16 @@
+services:
+  pilot:
+    build: .
+    image: climate-llm-pilot:0.1.0
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # lets the container reach Ollama on your machine
+
+  tests:
+    build: .
+    image: climate-llm-pilot:0.1.0
+    entrypoint: ["python", "-m", "pytest", "-q", "tests"]

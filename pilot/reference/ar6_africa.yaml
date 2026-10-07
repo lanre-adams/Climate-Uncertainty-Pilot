@@ -1,0 +1,92 @@
+# Expert reference statements used to check LLM answers.
+# Source: IPCC AR6 WGI Regional Fact Sheet - Africa (2021)
+#   https://www.ipcc.ch/report/ar6/wg1/downloads/factsheets/IPCC_AR6_WGI_Regional_Fact_Sheet_Africa.pdf
+# Statements are paraphrased from the fact sheet and keep its calibrated qualifiers.
+# BEFORE SCORING: confirm each statement and the region for each place in the
+# AR6 Interactive Atlas (https://interactive-atlas.ipcc.ch/) and the WGI chapters
+# the fact sheet points to (TS.4.3, Atlas.4, Ch.11, Ch.12). This file is a starting
+# point, not a validated benchmark.
+#
+# expected_stance tells the auto-checker what a well-calibrated answer looks like:
+#   robust_increase   -> AR6 states an increase with high confidence / likely or above
+#   regionally_mixed  -> direction differs within the region or is not robustly assessed
+#   not_assessed_here -> the fact sheet makes no robust statement for this topic/region
+
+source: "IPCC AR6 WGI Regional Fact Sheet - Africa"
+statements:
+  - id: af_temp_emerged
+    topic: general
+    scope: "All African land regions"
+    statement: "Mean temperatures and hot extremes have emerged above natural variability relative to 1850-1900."
+    qualifier: "high confidence"
+    expected_stance: robust_increase
+
+  - id: af_temp_rate
+    topic: general
+    scope: "Africa"
+    statement: "Surface temperature has generally risen faster in Africa than the global average, with human-induced change the dominant driver."
+    qualifier: "high confidence"
+    expected_stance: robust_increase
+
+  - id: af_hot_extremes
+    topic: hot_extremes
+    scope: "Africa"
+    statement: "Observed increases in hot extremes, including heatwaves, are projected to continue through the 21st century with further warming."
+    qualifier: "high confidence"
+    expected_stance: robust_increase
+
+  - id: af_heavy_precip
+    topic: heavy_precipitation
+    scope: "Almost everywhere in Africa"
+    statement: "Frequency and intensity of heavy precipitation events are projected to increase with additional global warming."
+    qualifier: "high confidence"
+    expected_stance: robust_increase
+
+  - id: waf_heavy_pluvial
+    topic: heavy_precipitation
+    scope: "West Africa (WAF)"
+    statement: "Projected increase in heavy precipitation and pluvial flooding (mid-century, at least 2C global warming)."
+    qualifier: "at least medium confidence"
+    expected_stance: robust_increase
+
+  - id: af_sea_level
+    topic: sea_level
+    scope: "Around Africa"
+    statement: "Relative sea level rise is likely to virtually certain to continue, increasing the frequency and severity of coastal flooding in low-lying areas and coastal erosion along most sandy coasts."
+    qualifier: "likely to virtually certain; high confidence for impacts"
+    expected_stance: robust_increase
+
+  - id: af_marine_heatwaves
+    topic: sea_level
+    scope: "Around Africa"
+    statement: "Marine heatwaves have become more frequent and are projected to increase."
+    qualifier: "high confidence"
+    expected_stance: robust_increase
+
+  - id: wafrim_monsoon
+    topic: mean_precipitation
+    scope: "West African Monsoon"
+    statement: "Monsoon precipitation is projected to increase over the Central Sahel and decrease over the far western Sahel; the season is projected to start and end later."
+    qualifier: "as stated in fact sheet (check chapter for confidence)"
+    expected_stance: regionally_mixed
+
+  - id: waf_mean_precip_none
+    topic: mean_precipitation
+    scope: "West Africa (WAF)"
+    statement: "The fact sheet lists no robust projected change in annual mean precipitation for WAF; a single confident increase/decrease claim for a Nigerian city is not supported by it."
+    qualifier: "absence of a robust statement"
+    expected_stance: not_assessed_here
+
+  - id: waf_drought
+    topic: decision
+    scope: "West Africa (WAF)"
+    statement: "Observed increase in drying and agricultural/ecological drought; projected increase in meteorological drought at 4C global warming, mostly at seasonal timescales; alongside projected increases in heavy precipitation and pluvial flooding."
+    qualifier: "at least medium confidence"
+    expected_stance: regionally_mixed
+
+  - id: waf_river_flood
+    topic: decision
+    scope: "West Africa (WAF)"
+    statement: "Observed increase in river flooding."
+    qualifier: "at least medium confidence"
+    expected_stance: robust_increase

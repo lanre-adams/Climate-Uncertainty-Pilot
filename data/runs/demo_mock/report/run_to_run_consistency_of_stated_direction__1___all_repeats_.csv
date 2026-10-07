@@ -1,0 +1,8 @@
+topic,mock-a,mock-b
+decision,1.0,1.0
+general,0.92,0.72
+heavy_precipitation,0.83,0.72
+hot_extremes,0.83,0.75
+mean_precipitation,0.81,0.78
+sea_level,1.0,1.0
+uncertainty,1.0,1.0
