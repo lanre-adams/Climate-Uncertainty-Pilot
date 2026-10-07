@@ -11,8 +11,7 @@ It was built as preparation for the UNRISK CDT project *AI in climate informatio
 communication: What's the benefit? What's the danger? What do people trust?*
 (University of Leeds), whose suggested starting questions it operationalises.
 
-> **Authorship and AI assistance.** The code in this repository was written with an AI
-> coding assistant (Claude). The study design choices, the question bank, the decision to
+ The study design choices, the question bank, the decision to
 > benchmark against AR6 calibrated language, running the collection, rating the answers
 > and interpreting the results are the author's responsibility. Say so whenever you
 > show or describe this work.
