@@ -119,6 +119,4 @@ tests/test_pilot.py             11 tests including an end-to-end mock run
 - Use rated answers as stimuli in a small trust experiment: does calibrated language,
   or a citation, change how credible a planner finds an answer?
 
-## Licence
 
-MIT.
