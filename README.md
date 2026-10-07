@@ -99,9 +99,9 @@ tests/test_pilot.py             11 tests including an end-to-end mock run
 ## Honest limits
 
 - **Mock output is synthetic.** `demo_mock` exists only to prove the pipeline runs. Reports
-  that contain mock data carry a banner saying so. Never quote them as results.
+  that contain mock data carry a banner saying so.
 - **The reference file is a starting point, not a validated benchmark.** It paraphrases the
-  AR6 Africa fact sheet. Before scoring, confirm each statement, and which AR6 region each
+  AR6 Africa fact sheet. Before scoring, confirm each statement and which AR6 region each
   place falls in, using the Interactive Atlas and the cited WGI chapters.
 - **The regex proxies are crude.** They count words. Negation, sarcasm and paraphrase defeat
   them. That is why they only route answers to humans.
