@@ -94,9 +94,10 @@ def _section(title, what, how, chart=None, table=None, extra="", example="") -> 
            f"<p class='what'><b>What this shows:</b> {html.escape(what)}</p>"]
     if chart:
         out.append(f"<figure><img alt='{html.escape(title)}' src='data:image/png;base64,{chart}'/></figure>")
-    out.append("<div class='how'><b>How to read it</b><ol>" + "".join(f"<li>{html.escape(x)}</li>" for x in steps) + "</ol></div>")
     if example:
         out.append(f"<div class='example'><b>Example from this run:</b> {html.escape(example)}</div>")
+    out.append("<details class='how'><summary>How to read it</summary><ol>"
+               + "".join(f"<li>{html.escape(x)}</li>" for x in steps) + "</ol></details>")
     if table is not None:
         out.append("<details><summary>Show the numbers</summary>" + table.to_html(classes="t", border=0) + "</details>")
     out.append(extra + "</section>")
@@ -425,7 +426,7 @@ h1{{font-size:24px;margin:8px 0 4px}} h2{{font-size:18px;margin:0 0 6px}} h3{{fo
 section{{border-top:1px solid var(--line);padding:22px 0}}
 .meta{{color:var(--muted);margin:0 0 10px}} .warn{{background:var(--warn);padding:10px 12px;border-radius:8px;margin:12px 0}}
 .err{{background:#fde2e2;padding:10px 12px;border-radius:8px;margin:12px 0}}
-.what{{margin:6px 0 4px;font-size:15.5px}} .how{{margin:8px 0;font-size:14px}} .how ol{{margin:4px 0 0 0;padding-left:22px}} .how li{{margin:3px 0}}
+.what{{margin:6px 0 4px;font-size:15.5px}} .how{{margin:8px 0}} .how ol{{font-size:14px}} .how ol{{margin:4px 0 0 0;padding-left:22px}} .how li{{margin:3px 0}}
 .example{{background:#eef4fc;border-left:3px solid #2a78d6;padding:8px 12px;margin:10px 0;font-size:14px;border-radius:4px}}
 .box{{background:var(--soft);border-radius:8px;padding:12px 16px;margin:14px 0}}
 img{{max-width:100%}} figure{{margin:14px 0}}
