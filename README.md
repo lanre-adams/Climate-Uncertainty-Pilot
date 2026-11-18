@@ -1,4 +1,4 @@
-# LLM Climate Uncertainty Pilot (v0.1.0)
+# LLM Climate Uncertainty Pilot (v0.2.0)
 
 A small, reproducible harness that asks large language models about projected climate
 change for three Nigerian places (Lagos, Uyo, Kano), and records **what they say, how they
@@ -33,7 +33,28 @@ Review flags (e.g. `OVERCONFIDENT_RAIN_DIRECTION`, `POINT_NUMBER_NO_RANGE`,
 `CITATION_TO_VERIFY`, `ONE_SIDED_DECISION`) point raters at answers worth checking. **They
 are not accuracy judgements.**
 
-## Run it with Docker
+## Use it in your browser (easiest)
+
+```bash
+pip install -r requirements.txt
+python -m pilot web            # then open http://127.0.0.1:8000
+```
+
+or with Docker: `docker compose up web` and open http://localhost:8000.
+
+1. **Choose what to run.** *Demo* uses two pretend models (free, no keys, results are made up and labelled as such).
+   *Real AI models* lets you tick Claude, ChatGPT, Gemini or a free local model (Ollama), and type a key and model name.
+   Keys typed into the page are kept in memory only and never saved; you can also put them in a `.env` file.
+2. **Choose the size.** Start with the quick test (7 questions spread across all topics, places and question styles, asked once).
+   The page shows how many requests will be sent. The report always says exactly what the run covered.
+3. **Press Run.** A progress bar shows each answer arriving. When it finishes, the report opens beside the controls.
+4. **Read or download** the report, every answer as a spreadsheet, the blinded rating sheet and the rating guide.
+   Past runs are listed so you can reopen them.
+
+The report is written in plain English: every chart says what it shows and how to read it, warning signs have
+plain names with explanations, and a few flagged answers are shown as examples.
+
+## Run it with Docker (command line)
 
 Needs Docker Desktop (Windows/macOS) or Docker Engine (Linux).
 
@@ -92,8 +113,10 @@ pilot/providers.py              Anthropic, OpenAI, Gemini, Ollama, and the synth
 pilot/collect.py                runs the prompt grid, resumable, writes responses.jsonl
 pilot/score.py                  automatic features, review flags, consistency
 pilot/rating.py                 blinded rating sheet, Cohen's kappa (nominal + quadratic)
-pilot/report.py                 tables, charts, single-file HTML report
-tests/test_pilot.py             11 tests including an end-to-end mock run
+pilot/report.py                 plain-English tables, charts, single-file HTML report
+pilot/labels.py                 plain names and explanations for models, question styles, topics and warning signs
+pilot/web.py                    browser interface (run demo or real models, view and download reports)
+tests/test_pilot.py             16 tests including end-to-end mock runs from the command line and the browser interface
 ```
 
 ## Honest limits

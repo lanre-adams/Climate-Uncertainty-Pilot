@@ -95,4 +95,75 @@ def test_end_to_end_mock(tmp_path: Path):
     ag = R.agreement(tmp_path / "r1.csv", tmp_path / "r2.csv")
     ag.to_csv(tmp_path / "agreement.csv", index=False)
     html = P.build(tmp_path / "scored.csv", tmp_path / "report", tmp_path / "agreement.csv").read_text()
-    assert "SYNTHETIC DATA" in html and "Cohen" in html
+    assert "Demo data: these numbers are made up" in html and "Cohen" in html
+
+
+def test_every_flag_has_a_plain_label():
+    import inspect
+    from pilot import labels as Lb
+    src = inspect.getsource(S.flags)
+    import re as _re
+    ids = set(_re.findall(r'"([A-Z_]{6,})"', src))
+    assert ids and ids <= set(Lb.FLAGS)
+
+
+def test_web_demo_run_end_to_end(tmp_path, monkeypatch):
+    import time
+    from pilot import web as Wb
+    monkeypatch.setattr(Wb, "RUNS", tmp_path / "runs")
+    app = Wb.create_app().test_client()
+    assert app.get("/").status_code == 200
+    assert "anthropic" in app.get("/api/status").get_json()["providers"]
+    r = app.post("/api/run", json={"mode": "demo", "limit": 5, "repeats": 2, "run": "t1"})
+    assert r.status_code == 200
+    for _ in range(100):
+        j = app.get("/api/job").get_json()
+        if j["state"] in ("finished", "failed"):
+            break
+        time.sleep(0.1)
+    assert j["state"] == "finished", j
+    runs = app.get("/api/runs").get_json()
+    assert runs[0]["name"] == "t1" and runs[0]["demo"] and runs[0]["answers"] == 20
+    assert "This run sent 5 questions" in app.get("/runs/t1/report.html").get_data(as_text=True)
+    page = app.get("/runs/t1/report.html").get_data(as_text=True)
+    assert "Demo data: these numbers are made up" in page and "What this shows" in page
+    assert app.get("/runs/t1/secret.txt").status_code == 404
+    assert app.get("/runs/..%2F..%2Fetc/report.html").status_code == 404
+
+
+def test_web_real_mode_requires_key_and_model(tmp_path, monkeypatch):
+    from pilot import web as Wb
+    monkeypatch.setattr(Wb, "RUNS", tmp_path / "runs")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_MODEL", raising=False)
+    monkeypatch.setattr(Wb, "load_dotenv", lambda *a, **k: None)
+    app = Wb.create_app().test_client()
+    r = app.post("/api/run", json={"mode": "real", "providers": {"openai": {"use": True}}})
+    assert r.status_code == 400 and "key" in r.get_json()["error"]
+    r = app.post("/api/run", json={"mode": "real", "providers": {}})
+    assert r.status_code == 400
+
+
+def test_report_describes_the_run_actually_done(tmp_path):
+    """The 'About this report' text must reflect the settings used, not the full design."""
+    d = tmp_path / "r"
+    C.collect(["mock-a"], 1, 0.7, d, limit=7, spread=True)
+    S.score_file(d / "responses.jsonl", d / "scored.csv")
+    html = P.build(d / "scored.csv", d / "report").read_text()
+    assert "This run sent 7 questions" in html
+    assert "sent once, so this run cannot show whether answers change" in html
+    assert "sample of 7 of the 84 possible questions" in html
+    assert "Not measured in this run" in html
+    assert "four ways" not in html
+    rows = [l for l in (d / "responses.jsonl").read_text().splitlines() if l]
+    assert len(rows) == 7 and len({__import__("json").loads(r)["topic"] for r in rows}) == 7
+
+
+def test_report_full_run_wording(tmp_path):
+    d = tmp_path / "r"
+    C.collect(["mock-a"], 2, 0.7, d)
+    S.score_file(d / "responses.jsonl", d / "scored.csv")
+    html = P.build(d / "scored.csv", d / "report").read_text()
+    assert "This run sent 84 questions" in html and "full set of questions" in html
+    assert "sent 2 times" in html and "Not measured in this run" not in html
+    assert "in 4 ways" in html and "Lagos, Uyo and Kano" in html

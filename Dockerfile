@@ -13,5 +13,7 @@ COPY tests ./tests
 RUN useradd --create-home pilot && mkdir -p /app/data && chown -R pilot /app
 USER pilot
 
+EXPOSE 8000
+
 ENTRYPOINT ["python", "-m", "pilot"]
 CMD ["all", "--providers", "mock,mock-b", "--repeats", "3", "--run", "demo_mock"]

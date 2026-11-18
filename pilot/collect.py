@@ -32,12 +32,25 @@ def build_prompts(bank: dict) -> list[dict]:
     return items
 
 
+def spread_sample(prompts: list[dict], k: int) -> list[dict]:
+    """k prompts evenly spaced through the bank (covers topics, places and framings)."""
+    if k <= 1:
+        return prompts[:1]
+    step = (len(prompts) - 1) / (k - 1)
+    return [prompts[round(i * step)] for i in range(k)]
+
+
 def collect(providers: list[str], repeats: int, temperature: float, out_dir: Path,
-            bank_path: Path | None = None, limit: int | None = None) -> Path:
+            bank_path: Path | None = None, limit: int | None = None, progress=None,
+            spread: bool = False) -> Path:
+    """progress, if given, is called as progress(done, total, record) after each answer.
+
+    limit keeps only N prompts: the first N, or (spread=True) N spread evenly across the
+    question bank so a small run still covers different topics, places and framings."""
     out_dir.mkdir(parents=True, exist_ok=True)
     prompts = build_prompts(load_bank(bank_path))
-    if limit:
-        prompts = prompts[:limit]
+    if limit and limit < len(prompts):
+        prompts = spread_sample(prompts, limit) if spread else prompts[:limit]
     out = out_dir / "responses.jsonl"
     done = set()
     if out.exists():  # resume an interrupted run instead of paying twice
@@ -54,6 +67,8 @@ def collect(providers: list[str], repeats: int, temperature: float, out_dir: Pat
                 for rep in range(repeats):
                     n += 1
                     if (provider.name, item["prompt_id"], rep) in done:
+                        if progress:
+                            progress(n, total, None)
                         continue
                     try:
                         if isinstance(provider, MockProvider):
@@ -72,6 +87,8 @@ def collect(providers: list[str], repeats: int, temperature: float, out_dir: Pat
                     rec["collected_at"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
                     fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
                     fh.flush()
+                    if progress:
+                        progress(n, total, rec)
                     if n % 25 == 0 or n == total:
                         print(f"  {n}/{total} collected")
     return out

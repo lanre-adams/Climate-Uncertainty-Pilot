@@ -6,6 +6,7 @@
   python -m pilot ratesheet --run my_run --sample 60
   python -m pilot agree --run my_run --r1 rater1.csv --r2 rater2.csv
   python -m pilot report --run my_run
+  python -m pilot web                                  # browser interface on http://127.0.0.1:8000
 """
 from __future__ import annotations
 
@@ -52,8 +53,15 @@ def main(argv=None):
     a.add_argument("--temperature", type=float, default=0.7)
     a.add_argument("--limit", type=int)
     a.add_argument("--sample", type=int)
+    w = sub.add_parser("web", help="open the browser interface")
+    w.add_argument("--host", default="127.0.0.1")
+    w.add_argument("--port", type=int, default=8000)
 
     args = p.parse_args(argv)
+    if args.cmd == "web":
+        from .web import serve
+        serve(args.host, args.port)
+        return
     d = run_dir(args.run)
     d.mkdir(parents=True, exist_ok=True)
 
