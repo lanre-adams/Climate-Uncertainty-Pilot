@@ -289,7 +289,7 @@ async function loadStatus(){STATUS=await (await fetch('/api/status')).json(); co
    <span class="pill ${p.has_key?'ok':'need'}">${p.needs_key?(p.has_key?'Key found':'Needs a key'):'No key needed'}</span></label>
    ${p.needs_key?`<div class="field">API key${p.has_key?' (already set; leave blank to use it)':''}<input type="password" class="key" autocomplete="off"></div>`:''}
    <div class="field">Model name<input type="text" class="model" value="${p.model||''}" placeholder="the exact model ID from ${n==='ollama'?'ollama list':'your provider account'}"></div>
-   ${n==='ollama'?`<div class="field">Ollama address<input type="text" class="host" value="${p.host||''}" placeholder="http://localhost:11434"></div>`:''}</div>`)}
+   ${n==='ollama'?`<div class="field">Ollama address<input type="text" class="host" value="${p.host||''}" placeholder="http://localhost:11434"></div><p class="note">Runs on your computer: free, but slow without a graphics card. The first answer can take a few minutes while the model loads; the app waits up to 10 minutes per answer. Tip: run <code>ollama run MODEL "hello"</code> first to load it.</p>`:''}</div>`)}
  $('#provs').innerHTML=h.join(''); document.querySelectorAll('#provs input').forEach(i=>i.addEventListener('input',estimate)); estimate();
  if(STATUS.job&&['starting','running'].includes(STATUS.job.state)) watch()}
 document.querySelectorAll('input[name=mode]').forEach(r=>r.addEventListener('change',()=>{msg('');$('#real').classList.toggle('hidden',mode()!=='real');

@@ -73,7 +73,8 @@ docker compose run --rm pilot all --providers anthropic,openai,gemini --repeats 
 Open `data/runs/<run>/report/report.html` in a browser.
 
 **Free option:** install [Ollama](https://ollama.com), pull an open model, set
-`OLLAMA_MODEL` in `.env`, and use `--providers ollama`.
+`OLLAMA_MODEL` in `.env`, and use `--providers ollama`. Local models can be slow on a laptop, so the app waits up to
+10 minutes per answer (change with `OLLAMA_TIMEOUT`, in seconds). A slow or failed answer is recorded and the run carries on.
 
 **Cost:** a full run is 84 prompts × repeats per provider (252 calls at 3 repeats).
 Always run `--limit 5` first. Collection resumes if interrupted, so nothing is paid twice.
@@ -116,7 +117,7 @@ pilot/rating.py                 blinded rating sheet, Cohen's kappa (nominal + q
 pilot/report.py                 plain-English tables, charts, single-file HTML report
 pilot/labels.py                 plain names and explanations for models, question styles, topics and warning signs
 pilot/web.py                    browser interface (run demo or real models, view and download reports)
-tests/test_pilot.py             16 tests including end-to-end mock runs from the command line and the browser interface
+tests/test_pilot.py             18 tests including end-to-end mock runs from the command line and the browser interface
 ```
 
 ## Honest limits

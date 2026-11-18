@@ -17,7 +17,8 @@ from dataclasses import dataclass
 
 import requests
 
-TIMEOUT = 120
+TIMEOUT = int(os.environ.get("PILOT_TIMEOUT", "120"))          # seconds to wait for one answer
+OLLAMA_TIMEOUT = int(os.environ.get("OLLAMA_TIMEOUT", "600"))  # local models on a laptop can be slow
 
 
 class ProviderError(RuntimeError):
@@ -45,9 +46,18 @@ def _env(name: str) -> str:
     return value
 
 
-def _post(url: str, headers: dict, payload: dict) -> dict:
+def _post(url: str, headers: dict, payload: dict, timeout: int | None = None) -> dict:
+    timeout = timeout or TIMEOUT
     for attempt in range(4):
-        r = requests.post(url, headers=headers, json=payload, timeout=TIMEOUT)
+        try:
+            r = requests.post(url, headers=headers, json=payload, timeout=timeout)
+        except requests.exceptions.Timeout:
+            # Recorded as a failed answer; the run carries on with the next question.
+            raise ProviderError(f"No answer within {timeout} seconds from {url.split('/api')[0].split('/v1')[0]}. "
+                                "The model may be slow or still loading.")
+        except requests.exceptions.ConnectionError:
+            raise ProviderError(f"Could not connect to {url.split('/api')[0].split('/v1')[0]}. "
+                                "Check the address and that the service is running.")
         if r.status_code in (429, 500, 502, 503, 529):
             time.sleep(2 ** attempt * 3)
             continue
@@ -116,9 +126,10 @@ class OllamaProvider(Provider):
         host = os.environ.get("OLLAMA_HOST", "http://host.docker.internal:11434")
         t0 = time.time()
         data = _post(f"{host}/api/chat", {}, {
-            "model": model, "stream": False, "options": {"temperature": temperature},
+            "model": model, "stream": False, "keep_alive": "30m",
+            "options": {"temperature": temperature, "num_predict": 1500},
             "messages": [{"role": "user", "content": prompt}],
-        })
+        }, timeout=OLLAMA_TIMEOUT)
         return Completion(data["message"]["content"], model, time.time() - t0)
 
 

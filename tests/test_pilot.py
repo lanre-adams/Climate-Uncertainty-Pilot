@@ -167,3 +167,41 @@ def test_report_full_run_wording(tmp_path):
     assert "This run sent 84 questions" in html and "full set of questions" in html
     assert "sent 2 times" in html and "Not measured in this run" not in html
     assert "in 4 ways" in html and "Lagos, Uyo and Kano" in html
+
+
+def test_timeout_is_recorded_and_run_continues(tmp_path, monkeypatch):
+    """A slow local model must not stop the run: the answer is logged as failed and collection goes on."""
+    import json as _json
+    import requests
+    from pilot import providers as Pv
+
+    calls = []
+
+    def slow(*a, **k):
+        calls.append(k.get("timeout"))
+        raise requests.exceptions.ReadTimeout("Read timed out.")
+
+    monkeypatch.setenv("OLLAMA_MODEL", "llama3.2")
+    monkeypatch.setenv("OLLAMA_HOST", "http://localhost:11434")
+    monkeypatch.setattr(Pv.requests, "post", slow)
+    d = tmp_path / "r"
+    C.collect(["ollama"], 1, 0.7, d, limit=3, spread=True)
+    rows = [_json.loads(l) for l in (d / "responses.jsonl").read_text().splitlines() if l]
+    assert len(rows) == 3 and all("No answer within" in r["error"] for r in rows)
+    assert calls and all(t == Pv.OLLAMA_TIMEOUT for t in calls)
+
+
+def test_connection_refused_is_a_clear_message(monkeypatch):
+    import requests
+    from pilot import providers as Pv
+
+    def refused(*a, **k):
+        raise requests.exceptions.ConnectionError("refused")
+
+    monkeypatch.setattr(Pv.requests, "post", refused)
+    try:
+        Pv._post("http://localhost:11434/api/chat", {}, {})
+    except Pv.ProviderError as e:
+        assert "Could not connect to http://localhost:11434" in str(e)
+    else:
+        raise AssertionError("expected ProviderError")
