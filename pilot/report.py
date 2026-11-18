@@ -229,8 +229,10 @@ def build(scored_csv: Path, out_dir: Path, agreement_csv: Path | None = None) ->
             ex += f" The lowest bar is {lo[1]}, {lo[0].lower()}: {lo[2]:.0f} in 100."
     sections.append(_section(
         "1. Do the answers use scientists' standard confidence words?",
-        "How often the answers use the words the IPCC uses to say how sure scientists are: \"likely\", "
-        "\"very likely\", \"virtually certain\", \"high confidence\" and similar.",
+        "Climate scientists never just say something will happen. The IPCC grades every statement with words "
+        "such as \"likely\", \"very likely\" or \"high confidence\", so the reader knows how much weight it can "
+        "bear. This chart shows whether the AI keeps those grades, or drops them and presents a best guess as a "
+        "fact. It matters most when the person asking has to act on the answer, such as a planner writing a report.",
         ["Each group of bars is one way the question was asked (plain, as a local planner, asking for a simple "
          "explanation, asking for sources).",
          colours,
@@ -254,11 +256,16 @@ def build(scored_csv: Path, out_dir: Path, agreement_csv: Path | None = None) ->
             ex += f" The lowest is {lo[1]}, {lo[0].lower()}: {lo[2]:.1f}."
     sections.append(_section(
         "2. How much of the uncertainty is explained? (score 0 to 5)",
-        "A score for each answer from 0 to 5, averaged. An answer gets 1 point for each of these: (1) a standard "
-        "confidence word such as \"likely\"; (2) a cautious word such as \"may\" or \"uncertain\"; (3) saying the "
-        "result depends on future emissions; (4) saying what it is compared with, such as \"since pre-industrial "
-        "times\"; (5) giving a range, such as \"between 0.3 and 1 metre\".",
+        "A trustworthy answer about the future tells you more than what might happen. It tells you how sure we are "
+        "and why: that it depends on how much the world emits, what it is being compared with, and a range rather "
+        "than one exact figure. This chart scores how much of that context each answer gives. A low score means "
+        "the reader gets the headline without the small print, which is exactly how a confident-sounding answer "
+        "can mislead.",
         ["Groups and colours work as in chart 1.",
+         "An answer gets 1 point for each of five signs: (1) a standard confidence word such as \"likely\"; "
+         "(2) a cautious word such as \"may\" or \"uncertain\"; (3) saying it depends on future emissions; "
+         "(4) saying what it is compared with, such as \"since pre-industrial times\"; (5) giving a range, such "
+         "as \"between 0.3 and 1 metre\".",
          "The number on a bar is the average score out of 5. An answer that only says \"very likely\" scores 1. One "
          "that also says it depends on emissions and gives a range scores 3.",
          "Taller is better: 0 means no signs of uncertainty at all, 5 means all five.",
@@ -286,8 +293,10 @@ def build(scored_csv: Path, out_dir: Path, agreement_csv: Path | None = None) ->
     legend = "".join(f"<li><b>{html.escape(n)}:</b> {html.escape(h)}</li>" for _, (n, h) in L.FLAGS.items())
     sections.append(_section(
         "3. Warning signs found in the answers",
-        "Problems the tool found automatically, such as an answer that gives no source or sounds too certain. Each "
-        "warning sign marks an answer a person should check.",
+        "This is the tool's early-warning system. It scans every answer for the habits most likely to mislead "
+        "someone making a real decision: giving no source, ignoring that the future depends on emissions, quoting "
+        "one exact number, or telling a planner that a hazard will not happen. Each bar shows how common one of "
+        "those habits is. It does not prove an answer is wrong; it tells a human reviewer where to look first.",
         ["Each row is one kind of warning sign, with the most common at the top. \"What each warning sign means\" "
          "below explains them.",
          "Each colour is one model.",
@@ -319,8 +328,10 @@ def build(scored_csv: Path, out_dir: Path, agreement_csv: Path | None = None) ->
             ex = "Every bar is at 100%: no model changed direction when asked again in this run."
         sections.append(_section(
             "4. Does the model give the same answer when asked again?",
-            f"Each question was sent {repeats} times. This checks whether the repeats said the same thing about the "
-            "direction of change: an increase, a decrease, or a mix of both.",
+            f"Ask a good expert the same question twice and you get the same answer. Each question here was sent "
+            f"{repeats} times to check whether the AI does the same. If it says \"more rain\" one time and \"less rain\" "
+            "the next, someone who asked only once has no way of knowing they got a coin toss rather than a "
+            "considered answer. That is a hidden risk for anyone relying on a single reply.",
             ["Each row is one topic.",
              "Each colour is one model.",
              "The number on a bar is how often (%) the repeated answers agreed on the direction.",
@@ -333,7 +344,8 @@ def build(scored_csv: Path, out_dir: Path, agreement_csv: Path | None = None) ->
         cons_t = pd.DataFrame()
         sections.append(_section(
             "4. Does the model give the same answer when asked again?",
-            "Not measured in this run: each question was sent only once.",
+            "Ask a good expert the same question twice and you get the same answer. This chart checks whether the AI "
+            "does too. Not measured in this run, because each question was sent only once.",
             ["To see whether answers change when the same question is asked again, run it again with \"Times to ask "
              "each question\" set to 2 or 3."]))
 
@@ -355,7 +367,9 @@ def build(scored_csv: Path, out_dir: Path, agreement_csv: Path | None = None) ->
     totals = "; ".join(f"{m}: {int(n)} answers" for m, n in per_model.items())
     sections.append(_section(
         "5. Which sources do the answers mention?",
-        "How many answers name each well-known source, such as the IPCC (the UN's climate science panel).",
+        "Where an answer gets its information is the first thing a careful reader checks. This chart shows which "
+        "recognised sources the AI points to, such as the IPCC (the UN's climate science panel). Naming the IPCC is "
+        "encouraging, but it is a claim, not proof: the answer still has to match what the IPCC actually says.",
         ["Each row is one source, with the most mentioned at the top.",
          "Each colour is one model.",
          f"The number on a bar is a count of answers, not a percentage. For scale, each model gave: {totals}.",
@@ -371,7 +385,10 @@ def build(scored_csv: Path, out_dir: Path, agreement_csv: Path | None = None) ->
         csvs["6_rater_agreement"] = ag
         sections.append(_section(
             "6. Do the two human raters agree?",
-            "How closely two people who rated the same answers agree, for each thing they scored.",
+            "The automatic checks only flag answers; whether an answer is right is decided by people. Before trusting "
+            "those decisions, we check that two independent reviewers, scoring the same answers without knowing which "
+            "model wrote them, reach the same view. If they don't, it is the scoring guide that needs to be clearer, "
+            "and no conclusion about the models should be drawn yet.",
             ["Each row is one thing the raters scored (for example accuracy).",
              "\"percent_agreement\" is how often they gave exactly the same score.",
              "\"kappa\" (Cohen's kappa) is the same agreement after removing what two people would get by luck. "
@@ -408,7 +425,7 @@ h1{{font-size:24px;margin:8px 0 4px}} h2{{font-size:18px;margin:0 0 6px}} h3{{fo
 section{{border-top:1px solid var(--line);padding:22px 0}}
 .meta{{color:var(--muted);margin:0 0 10px}} .warn{{background:var(--warn);padding:10px 12px;border-radius:8px;margin:12px 0}}
 .err{{background:#fde2e2;padding:10px 12px;border-radius:8px;margin:12px 0}}
-.what{{margin:4px 0}} .how{{margin:8px 0;font-size:14px}} .how ol{{margin:4px 0 0 0;padding-left:22px}} .how li{{margin:3px 0}}
+.what{{margin:6px 0 4px;font-size:15.5px}} .how{{margin:8px 0;font-size:14px}} .how ol{{margin:4px 0 0 0;padding-left:22px}} .how li{{margin:3px 0}}
 .example{{background:#eef4fc;border-left:3px solid #2a78d6;padding:8px 12px;margin:10px 0;font-size:14px;border-radius:4px}}
 .box{{background:var(--soft);border-radius:8px;padding:12px 16px;margin:14px 0}}
 img{{max-width:100%}} figure{{margin:14px 0}}
