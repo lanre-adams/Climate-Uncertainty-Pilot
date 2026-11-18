@@ -43,8 +43,11 @@ def _axes(ax, xlabel=None, ylabel=None, horizontal=False):
         ax.set_ylabel(ylabel, color=MUTED, fontsize=9)
 
 
-def _bars(table: pd.DataFrame, xlabel: str, xmax=None, horizontal=False, fmt="{:.0f}") -> str:
-    """Grouped bars: rows = categories, columns = models. Values labelled on the bars."""
+def _bars(table: pd.DataFrame, xlabel: str, xmax=None, horizontal=False, fmt="{:.0f}", better: str | None = None) -> str:
+    """Grouped bars: rows = categories, columns = models. Values labelled on the bars.
+    better = "taller", "longer" or "shorter" adds a plain note to the axis label, e.g. "(taller bar = better)"."""
+    if better:
+        xlabel = f"{xlabel}   ({better} bar = better)"
     n = len(table.columns)
     width = 0.8 / max(n, 1)
     if horizontal:
@@ -84,16 +87,31 @@ def _rename(t: pd.DataFrame, index_fn=None) -> pd.DataFrame:
     return t
 
 
-def _section(title, what, how, chart=None, table=None, extra="") -> str:
+def _section(title, what, how, chart=None, table=None, extra="", example="") -> str:
+    """how: a list of short steps (or one string). example: a sentence using this run's own numbers."""
+    steps = how if isinstance(how, (list, tuple)) else [how]
     out = [f"<section><h2>{html.escape(title)}</h2>",
-           f"<p class='what'><b>What this shows:</b> {html.escape(what)}</p>",
-           f"<p class='how'><b>How to read it:</b> {html.escape(how)}</p>"]
+           f"<p class='what'><b>What this shows:</b> {html.escape(what)}</p>"]
     if chart:
         out.append(f"<figure><img alt='{html.escape(title)}' src='data:image/png;base64,{chart}'/></figure>")
+    out.append("<div class='how'><b>How to read it</b><ol>" + "".join(f"<li>{html.escape(x)}</li>" for x in steps) + "</ol></div>")
+    if example:
+        out.append(f"<div class='example'><b>Example from this run:</b> {html.escape(example)}</div>")
     if table is not None:
         out.append("<details><summary>Show the numbers</summary>" + table.to_html(classes="t", border=0) + "</details>")
     out.append(extra + "</section>")
     return "".join(out)
+
+
+def _pick(tbl: pd.DataFrame, how: str = "max"):
+    """(row, column, value) of the largest or smallest cell, or None."""
+    if tbl is None or not len(tbl) or not tbl.size:
+        return None
+    st = tbl.stack().dropna()
+    if st.empty:
+        return None
+    (r, c) = st.idxmax() if how == "max" else st.idxmin()
+    return r, c, st.loc[(r, c)]
 
 
 def _examples(ok: pd.DataFrame, k: int = 3) -> str:
@@ -194,30 +212,59 @@ def build(scored_csv: Path, out_dir: Path, agreement_csv: Path | None = None) ->
 
     sections, csvs = [], {}
 
+    per_model = ok.groupby("provider").size().rename(index=L.provider)
+    colours = ("Each colour is one model; the key above the chart says which. Compare bars of the same colour to see "
+               "whether the way of asking matters, and compare colours to compare models.")
+
     # 1. Calibrated language
     t = ok.groupby(["provider", "framing"])["has_calibrated"].mean().unstack("provider").reindex(fr_order)
     cal = _rename(t * 100, L.framing).round(0)
     csvs["1_standard_confidence_words_by_question_style"] = cal
+    ex = ""
+    hi, lo = _pick(cal, "max"), _pick(cal, "min")
+    if hi:
+        ex = (f"{hi[1]}, {hi[0].lower()}: {hi[2]:.0f}%. In {hi[2]:.0f} of every 100 answers it used at least one of "
+              f"these words.")
+        if lo and lo[2] < hi[2]:
+            ex += f" The lowest bar is {lo[1]}, {lo[0].lower()}: {lo[2]:.0f} in 100."
     sections.append(_section(
         "1. Do the answers use scientists' standard confidence words?",
-        "The share of answers (%) that use the IPCC's standard words for how sure scientists are, such as "
-        "\"likely\", \"very likely\" or \"high confidence\", for each way the question was asked.",
-        "Higher is better: these words tell a reader how much to trust a statement. Watch for drops when the "
-        "question comes from a planner or asks for a simple explanation, because that is when the uncertainty matters most.",
-        _bars(cal, "% of answers", 100), cal))
+        "How often the answers use the words the IPCC uses to say how sure scientists are: \"likely\", "
+        "\"very likely\", \"virtually certain\", \"high confidence\" and similar.",
+        ["Each group of bars is one way the question was asked (plain, as a local planner, asking for a simple "
+         "explanation, asking for sources).",
+         colours,
+         "The number on a bar is the percentage of that model's answers that used at least one of these words. "
+         "50 means half of its answers did.",
+         "Taller is better: these words tell the reader how much to trust a statement.",
+         "Look for bars that drop for \"Asked as a local planner\" or \"Asked to explain simply\". That is where "
+         "the uncertainty matters most and is most likely to be left out."],
+        _bars(cal, "% of answers using these words", 100, better="taller"), cal, example=ex))
 
     # 2. Uncertainty score
     t2 = ok.groupby(["provider", "framing"])["uncertainty_proxy"].mean().unstack("provider").reindex(fr_order)
     unc = _rename(t2, L.framing).round(1)
     csvs["2_uncertainty_score_by_question_style"] = unc
+    ex = ""
+    hi, lo = _pick(unc, "max"), _pick(unc, "min")
+    if hi:
+        ex = (f"{hi[1]}, {hi[0].lower()}: {hi[2]:.1f} out of 5. Its typical answer showed about {round(hi[2])} of "
+              f"the 5 signs of uncertainty.")
+        if lo and lo[2] < hi[2]:
+            ex += f" The lowest is {lo[1]}, {lo[0].lower()}: {lo[2]:.1f}."
     sections.append(_section(
         "2. How much of the uncertainty is explained? (score 0 to 5)",
-        "An average score from 0 to 5. An answer gets one point each for: a standard confidence word; a cautious "
-        "word such as \"may\" or \"uncertain\"; saying it depends on future emissions; saying what it is compared "
-        "with (e.g. pre-industrial times); and giving a range (\"between X and Y\").",
-        "Higher means the answer tells the reader more about how uncertain the projection is. It counts words, "
-        "so it is a rough guide that points people to answers worth reading, not a mark for quality.",
-        _bars(unc, "average score (0–5)", 5, fmt="{:.1f}"), unc))
+        "A score for each answer from 0 to 5, averaged. An answer gets 1 point for each of these: (1) a standard "
+        "confidence word such as \"likely\"; (2) a cautious word such as \"may\" or \"uncertain\"; (3) saying the "
+        "result depends on future emissions; (4) saying what it is compared with, such as \"since pre-industrial "
+        "times\"; (5) giving a range, such as \"between 0.3 and 1 metre\".",
+        ["Groups and colours work as in chart 1.",
+         "The number on a bar is the average score out of 5. An answer that only says \"very likely\" scores 1. One "
+         "that also says it depends on emissions and gives a range scores 3.",
+         "Taller is better: 0 means no signs of uncertainty at all, 5 means all five.",
+         "The score counts words, so a high score does not prove the answer is correct. Use it to find answers "
+         "worth reading."],
+        _bars(unc, "average score out of 5", 5, fmt="{:.1f}", better="taller"), unc, example=ex))
 
     # 3. Warning signs
     exploded = ok.assign(flag=ok["flags"].str.split(";")).explode("flag")
@@ -229,16 +276,30 @@ def build(scored_csv: Path, out_dir: Path, agreement_csv: Path | None = None) ->
     else:
         flags_t = pd.DataFrame()
     csvs["3_warning_signs"] = flags_t
+    ex = ""
+    if len(flags_t):
+        top = flags_t.index[0]
+        m = flags_t.loc[top].idxmax()
+        v = flags_t.loc[top, m]
+        ex = (f"The top row is \"{top}\". For {m} the bar reads {v:.0f}%, so about {v:.0f} of every 100 of its "
+              f"answers had this problem.")
     legend = "".join(f"<li><b>{html.escape(n)}:</b> {html.escape(h)}</li>" for _, (n, h) in L.FLAGS.items())
     sections.append(_section(
         "3. Warning signs found in the answers",
-        "The share of answers (%) with each warning sign. Warning signs are found automatically and mark answers "
-        "a person should check.",
-        "Lower is better. A warning sign is not proof the answer is wrong; the accuracy check is done by people "
-        "using the blinded rating sheet.",
-        _bars(flags_t.head(10), "% of answers", horizontal=True) if len(flags_t) else None, flags_t if len(flags_t) else None,
+        "Problems the tool found automatically, such as an answer that gives no source or sounds too certain. Each "
+        "warning sign marks an answer a person should check.",
+        ["Each row is one kind of warning sign, with the most common at the top. \"What each warning sign means\" "
+         "below explains them.",
+         "Each colour is one model.",
+         "The number on a bar is the percentage of that model's answers with that warning sign.",
+         "Shorter is better: fewer answers with the problem.",
+         "One answer can have several warning signs, so the rows do not add up to 100%.",
+         "A warning sign is not proof the answer is wrong. Whether an answer is correct is judged by people, using "
+         "the rating sheet."],
+        _bars(flags_t.head(10), "% of answers with this warning sign", horizontal=True, better="shorter")
+        if len(flags_t) else None, flags_t if len(flags_t) else None,
         f"<details><summary>What each warning sign means</summary><ul class='legend'>{legend}</ul></details>"
-        f"<h3>Examples of answers with warning signs</h3>{_examples(ok)}"))
+        f"<h3>Examples of answers with warning signs</h3>{_examples(ok)}", example=ex))
 
     # 4. Consistency
     cons = consistency(ok)
@@ -248,20 +309,33 @@ def build(scored_csv: Path, out_dir: Path, agreement_csv: Path | None = None) ->
     repeats = int(ok.groupby(["provider", "prompt_id"]).size().max()) if len(ok) else 1
     if repeats > 1:
         csvs["4_same_answer_when_asked_again"] = cons_t
+        lo = _pick(cons_t, "min")
+        ex = ""
+        if lo and lo[2] < 100:
+            ex = (f"{lo[1]} on \"{lo[0]}\": {lo[2]:.0f}%. When asked the same question again, it kept the same "
+                  f"direction {lo[2]:.0f} times in 100. The rest of the time it switched, for example from \"more\" "
+                  f"to \"less\".")
+        elif lo:
+            ex = "Every bar is at 100%: no model changed direction when asked again in this run."
         sections.append(_section(
             "4. Does the model give the same answer when asked again?",
-            f"Each question was sent {repeats} times. This shows how often (%) the repeats agreed on the direction "
-            "of change (increase, decrease, or both).",
-            "100% means the model always said the same thing. Lower means it changed its answer just from being asked "
-            "again, which a planner would not see if they asked only once.",
-            _bars(cons_t, "% of repeats that agree", 105, horizontal=True), cons_t))
+            f"Each question was sent {repeats} times. This checks whether the repeats said the same thing about the "
+            "direction of change: an increase, a decrease, or a mix of both.",
+            ["Each row is one topic.",
+             "Each colour is one model.",
+             "The number on a bar is how often (%) the repeated answers agreed on the direction.",
+             "Longer is better. 100% means the model never changed its answer.",
+             "A shorter bar means the model changed its answer just because it was asked again. Someone who asks "
+             "only once would never know."],
+            _bars(cons_t, "% of repeats giving the same direction", 105, horizontal=True, better="longer"),
+            cons_t, example=ex))
     else:
         cons_t = pd.DataFrame()
         sections.append(_section(
             "4. Does the model give the same answer when asked again?",
             "Not measured in this run: each question was sent only once.",
-            "To see whether answers change when the same question is asked again, run it again with "
-            "\"Times to ask each question\" set to 2 or 3."))
+            ["To see whether answers change when the same question is asked again, run it again with \"Times to ask "
+             "each question\" set to 2 or 3."]))
 
     # 5. Sources
     src = ok.assign(src=ok["named_sources"].fillna("").str.split(";")).explode("src")
@@ -273,20 +347,37 @@ def build(scored_csv: Path, out_dir: Path, agreement_csv: Path | None = None) ->
     else:
         src_t = pd.DataFrame()
     csvs["5_sources_named"] = src_t
+    ex = ""
+    if len(src_t):
+        top = src_t.index[0]
+        m = src_t.loc[top].idxmax()
+        ex = (f"{m} mentioned {top} in {int(src_t.loc[top, m])} of its {int(per_model.get(m, 0))} answers.")
+    totals = "; ".join(f"{m}: {int(n)} answers" for m, n in per_model.items())
     sections.append(_section(
         "5. Which sources do the answers mention?",
-        "How many answers mention each well-known source.",
-        "Mentioning the IPCC is a good sign but does not prove the answer matches what the IPCC says. Any "
-        "author-and-year citations are flagged separately so a person can check they exist.",
-        _bars(src_t, "number of answers", horizontal=True) if len(src_t) else None, src_t if len(src_t) else None))
+        "How many answers name each well-known source, such as the IPCC (the UN's climate science panel).",
+        ["Each row is one source, with the most mentioned at the top.",
+         "Each colour is one model.",
+         f"The number on a bar is a count of answers, not a percentage. For scale, each model gave: {totals}.",
+         "Neither longer nor shorter is better on its own. Naming the IPCC is a good sign, but it does not prove "
+         "the answer matches what the IPCC says.",
+         "Citations that look like an author and a year are flagged in chart 3 (\"Cites a paper that needs "
+         "checking\"), because they could be invented."],
+        _bars(src_t, "number of answers naming this source", horizontal=True) if len(src_t) else None,
+        src_t if len(src_t) else None, example=ex))
 
     if agreement_csv and agreement_csv.exists():
         ag = pd.read_csv(agreement_csv).set_index("criterion")
         csvs["6_rater_agreement"] = ag
         sections.append(_section(
             "6. Do the two human raters agree?",
-            "Cohen's kappa for each rating criterion: how much the two raters agree beyond chance.",
-            "1 = perfect agreement, 0 = no better than chance. Above about 0.6 is usually taken as good agreement.",
+            "How closely two people who rated the same answers agree, for each thing they scored.",
+            ["Each row is one thing the raters scored (for example accuracy).",
+             "\"percent_agreement\" is how often they gave exactly the same score.",
+             "\"kappa\" (Cohen's kappa) is the same agreement after removing what two people would get by luck. "
+             "\"kappa_quadratic\" counts near-misses (a 1 against a 2) as small and big gaps (0 against 2) as serious.",
+             "1 means perfect agreement and 0 means no better than chance. Above about 0.6 is usually treated as "
+             "good. If it is low, make the rating guide clearer before trusting the scores."],
             None, ag))
 
     for name, tbl in csvs.items():
@@ -317,7 +408,8 @@ h1{{font-size:24px;margin:8px 0 4px}} h2{{font-size:18px;margin:0 0 6px}} h3{{fo
 section{{border-top:1px solid var(--line);padding:22px 0}}
 .meta{{color:var(--muted);margin:0 0 10px}} .warn{{background:var(--warn);padding:10px 12px;border-radius:8px;margin:12px 0}}
 .err{{background:#fde2e2;padding:10px 12px;border-radius:8px;margin:12px 0}}
-.what,.how{{margin:4px 0}} .how{{color:var(--muted)}}
+.what{{margin:4px 0}} .how{{margin:8px 0;font-size:14px}} .how ol{{margin:4px 0 0 0;padding-left:22px}} .how li{{margin:3px 0}}
+.example{{background:#eef4fc;border-left:3px solid #2a78d6;padding:8px 12px;margin:10px 0;font-size:14px;border-radius:4px}}
 .box{{background:var(--soft);border-radius:8px;padding:12px 16px;margin:14px 0}}
 img{{max-width:100%}} figure{{margin:14px 0}}
 details{{margin:8px 0}} summary{{cursor:pointer;color:#2a78d6}}
