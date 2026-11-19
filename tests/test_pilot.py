@@ -205,3 +205,11 @@ def test_connection_refused_is_a_clear_message(monkeypatch):
         assert "Could not connect to http://localhost:11434" in str(e)
     else:
         raise AssertionError("expected ProviderError")
+
+
+def test_report_names_exact_model_and_date(tmp_path):
+    d = tmp_path / "r"
+    C.collect(["mock-a"], 1, 0.7, d, limit=3, spread=True)
+    S.score_file(d / "responses.jsonl", d / "scored.csv")
+    html = P.build(d / "scored.csv", d / "report").read_text()
+    assert "Exact models used: Demo model A (pretend): synthetic-a" in html and "Collected " in html

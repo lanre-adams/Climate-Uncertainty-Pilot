@@ -409,6 +409,18 @@ def build(scored_csv: Path, out_dir: Path, agreement_csv: Path | None = None) ->
         take.insert(0, f"Small sample: some question styles have only {smallest} answer{'s' if smallest != 1 else ''} "
                        "per model, so these percentages can swing a lot. Treat them as a rough first look.")
     models = _join([L.provider(p) for p in sorted(ok["provider"].unique())]) if len(ok) else "no models"
+    # exact model IDs and collection dates: needed to interpret or repeat a real run
+    ids = []
+    for prov, g in ok.groupby("provider"):
+        mids = sorted({str(m) for m in g["model"].dropna() if str(m).strip()})
+        if mids:
+            ids.append(f"{L.provider(prov)}: {', '.join(mids)}")
+    dates = pd.to_datetime(ok.get("collected_at", pd.Series(dtype=str)), errors="coerce", utc=True).dropna()
+    when = ""
+    if len(dates):
+        a, b = dates.min().strftime("%d %b %Y"), dates.max().strftime("%d %b %Y")
+        when = f"Collected {a}" if a == b else f"Collected {a} to {b}"
+    model_line = " · ".join(x for x in ["Exact models used: " + "; ".join(ids) if ids else "", when] if x)
     banner = ("<div class='warn'><b>Demo data: these numbers are made up.</b> This report uses pretend models "
               "built to test the tool. It says nothing about any real AI model. Use it only to show how the "
               "report works.</div>") if synthetic else ""
@@ -442,6 +454,7 @@ details{{margin:8px 0}} summary{{cursor:pointer;color:#2a78d6}}
 <h1>What do AI models say about climate change in Nigeria?</h1>
 <p class="meta">{len(ok)} answers from {html.escape(models)} · {ok['prompt_id'].nunique()} different questions ·
 places: {html.escape(places)}</p>
+<p class="meta">{html.escape(model_line)}</p>
 {banner}{err}
 <div class="box"><b>About this report.</b> {about}</div>
 <div class="box"><b>In brief</b><ul>{summary}</ul></div>
